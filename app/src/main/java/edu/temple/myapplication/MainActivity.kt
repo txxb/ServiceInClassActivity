@@ -5,14 +5,25 @@ import android.content.Intent
 import android.content.ServiceConnection
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.Message
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Button
+import android.widget.TextView
 import kotlin.concurrent.timer
 
 class MainActivity : AppCompatActivity() {
 
     var timerBinder: TimerService.TimerBinder? = null
-    var isConnected = false
+    val timerHandler = object : Handler(Looper.getMainLooper()) {
+        override fun handleMessage(msg: Message) {
+            val time = msg.what
+            findViewById<TextView>(R.id.textView).text = time.toString()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,6 +32,7 @@ class MainActivity : AppCompatActivity() {
         val serviceConnection = object : ServiceConnection {
             override fun onServiceConnected(p0: ComponentName?, p1: IBinder?) {
                 timerBinder = p1 as TimerService.TimerBinder
+                timerBinder?.setHandler(timerHandler)
             }
 
             override fun onServiceDisconnected(p0: ComponentName?) {
@@ -36,15 +48,40 @@ class MainActivity : AppCompatActivity() {
         )
 
         findViewById<Button>(R.id.startButton).setOnClickListener {
-            if(timerBinder?.isRunning == true) {
-                timerBinder!!.pause()
-            } else {
-                timerBinder?.start(25)
-            }
+            startTimer()
         }
         
         findViewById<Button>(R.id.stopButton).setOnClickListener {
-            timerBinder?.stop()
+            stopTimer()
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.action_start)
+        {
+            startTimer()
+        }
+        else if (item.itemId == R.id.action_stop)
+        {
+            stopTimer()
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    fun startTimer(){
+        if(timerBinder?.isRunning == true) {
+            timerBinder!!.pause()
+        } else {
+            timerBinder?.start(25)
+        }
+    }
+
+    fun stopTimer(){
+        timerBinder?.stop()
     }
 }
