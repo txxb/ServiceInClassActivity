@@ -69,8 +69,11 @@ class MainActivity : AppCompatActivity() {
         else if (item.itemId == R.id.action_stop)
         {
             stopTimer()
+        } else {
+            return false
         }
-        return super.onOptionsItemSelected(item)
+
+        return true
     }
 
     fun startTimer(){
