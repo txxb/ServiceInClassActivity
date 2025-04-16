@@ -3,6 +3,7 @@ package edu.temple.myapplication
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
@@ -13,14 +14,25 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
 import android.widget.TextView
+import java.io.BufferedReader
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.FileReader
+import java.io.IOException
 import kotlin.concurrent.timer
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var preferences : SharedPreferences
+    private lateinit var file : File
+    private val fileName = "countdown_info"
+    var time : Int = 0
+
     var timerBinder: TimerService.TimerBinder? = null
     val timerHandler = object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(msg: Message) {
-            val time = msg.what
+            time = msg.what
             findViewById<TextView>(R.id.textView).text = time.toString()
         }
     }
@@ -77,14 +89,44 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun startTimer(){
-        if(timerBinder?.isRunning == true) {
-            timerBinder!!.pause()
+
+        preferences = getPreferences(MODE_PRIVATE)
+        file = File(filesDir, fileName)
+
+        if(file.exists()){
+            try {
+                val inputStream = FileInputStream(file)
+                val time = inputStream.bufferedReader().use { it.readText() }
+                inputStream.close()
+                timerBinder?.start(time.toInt())
+            }
+            catch (e: IOException)
+            {
+                e.printStackTrace()
+            }
+
         } else {
-            timerBinder?.start(25)
+            if(timerBinder?.isRunning == true) {
+                timerBinder!!.pause()
+            } else {
+                timerBinder?.start(25)
+            }
         }
+
     }
 
     fun stopTimer(){
         timerBinder?.stop()
+        saveTime(time)
+    }
+
+    private fun saveTime(time : Int) {
+        try {
+            val outputStream = FileOutputStream(file)
+            outputStream.write(time.toString().toByteArray())
+            outputStream.close()
+        } catch (e : IOException) {
+            e.printStackTrace()
+        }
     }
 }
